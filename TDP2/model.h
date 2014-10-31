@@ -3,12 +3,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
-typedef struct _Particule {
+typedef struct _Particle {
   double mass;
   double x;
   double y;
   double v;
-} Particule;
+} Particle;
+
+double compute_dt();
 
 #endif
