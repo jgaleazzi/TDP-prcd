@@ -6,6 +6,8 @@
 #include <string.h>
 #include <assert.h>
 
+#define CHK(X, Y) do { if ((X)<0) {perror(Y); exit(1);} } while(0)
+
 typedef struct _Particle {
   double mass;
   double x;
