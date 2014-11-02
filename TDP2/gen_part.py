@@ -15,15 +15,15 @@ def gen():
     vit_tab = (100*np.random.rand(nb_part)).tolist()
     nb_element_file = nb_part/nb_proc
     reste = nb_part%nb_proc
-    count = 0
+
     for i in range(nb_proc):
         NomFichier = 'proc_'+str(i)+'.txt'
         Fichier = open(NomFichier,'w')
         for j in range(nb_element_file):
-            Fichier.write(str(count)+ " " + str(Masse_tab[j])+ " " + str(x_tab[j])+ " " + str(y_tab[j])+ " " + str(vit_tab[j])+ '\n')
-            count+=1
+            Fichier.write( str(Masse_tab[j])+ " " + str(x_tab[j])+ " " + str(y_tab[j])+ " " + str(vit_tab[j])+ '\n')
         for k in range(reste):
-            Fichier.write(str(ID_tab[count])+ " " + str(Masse_tab[k])+ " " + str(x_tab[k])+ " " + str(y_tab[k])+ " " + str(vit_tab[k])+ '\n')
-            count+=1
+            Fichier.write( str(Masse_tab[k])+ " " + str(x_tab[k])+ " " + str(y_tab[k])+ " " + str(vit_tab[k])+ '\n')
         Fichier.close()
+
+
 gen()
