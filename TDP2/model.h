@@ -15,6 +15,7 @@ typedef struct _Particle {
   double v;
 } Particle;
 
-double compute_dt();
+//computes the new dt by solving a degree-2 polynom
+double compute_dt(const double acceleration_norm, const double speed_norm, double minimal_distance);
 
 #endif
