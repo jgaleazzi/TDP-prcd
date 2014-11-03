@@ -22,7 +22,7 @@ void load(Particle *particle,Movement* move, FILE* file, int nb_line){
     CHK(err=  fscanf(file, "%lf %lf %lf %lf %lf",&particle[i].mass,&particle[i].x,&particle[i].y,&move[i].v_x,&move[i].v_y),"scanf");
     move[i].a_x=0.0;
     move[i].a_y=0.0;
-  
+    particle[i].dist=0.0;
   }
 }
 
