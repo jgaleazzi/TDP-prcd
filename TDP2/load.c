@@ -1,4 +1,4 @@
-#include "model.h"
+#include "load.h"
 
 
 int nb_lines (char *name){
