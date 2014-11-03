@@ -9,7 +9,7 @@
 
 #define CHK(X, Y) do { if ((X)<0) {perror(Y); exit(1);} } while(0)
 #define G 1.0 //gravitation coefficient
-#define DT_max
+#define DT_max 0.1
 
 double dt;
 int nb_part;
