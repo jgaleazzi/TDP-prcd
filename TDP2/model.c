@@ -25,7 +25,7 @@ void gravitation(Particle *parts, Movement *moves){
   int i,j;
   //describe all the parts
   for(i=0;i<nb_part;i++){
-    for(j=0;j<nb_part;i++){
+    for(j=0;j<nb_part;j++){
       if(i!=j)
        	compute_gravitation(&parts[i],&parts[j],&moves[i]);
     }
@@ -51,7 +51,7 @@ void update_dt(Particle *parts, Movement *moves){
 	     C = part_distmin
   */
 
-  double A, B, C,delta;
+  double A, B, C,delta,new_dt;
   int i;
   for(i=0;i<nb_part;i++){
     A = sqrt(moves[i].a_x*moves[i].a_x + moves[i].a_y*moves[i].a_y); 
@@ -60,6 +60,9 @@ void update_dt(Particle *parts, Movement *moves){
     
     delta = B*B + 0.2 * A*C;
 
+    new_dt = (sqrt(delta)- B)/A;
+
+    dt = min(new_dt,DT_max); 
   }
 }
 
