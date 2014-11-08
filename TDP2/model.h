@@ -10,7 +10,7 @@
 #define CHK(X, Y) do { if ((X)<0) {perror(Y); exit(1);} } while(0)
 #define G 1.0 //gravitation coefficient
 #define DT_max 0.1
-
+#define NB_ITER 5
 double dt;
 int nb_part;
 typedef struct _Particle {
@@ -36,14 +36,18 @@ double compute_norm(Particle *partA, Particle *partB);
 //compute the gravitation force between two parts
 void compute_gravitation(Particle *partA, Particle *partB, Movement *moveA);
 
-//compute the gravitation force for each part
-void gravitation(Particle *parts, Movement *moves);
+//compute the gravitation force for each particle in a proc
+void gravitation_inter(Particle *parts, Movement *moves);
+
+//compute the gravitation force for each particle between proc
+void gravitation(Particle *partsA,Particle *partsB, Movement *moves);
+
 
 //update of the speed and positions
 void update_moves(Particle *parts, Movement *moves);
 
 //update dt
-void update_dt(Particle *parts, Movement *moves);
+double update_dt(Particle *parts, Movement *moves);
 
-double min(double a, double b);
+double my_min(double a, double b);
 #endif
