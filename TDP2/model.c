@@ -11,7 +11,7 @@ void compute_gravitation(Particle *partA, Particle *partB, Movement *moveA){
   double norm =  compute_norm(partA,partB);
   if (partA->dist == 0.0)
     partA->dist = norm;
-  partA->dist = min(partA->dist,norm);
+  partA->dist = my_min(partA->dist,norm);
   double force = G* partB->mass/(norm*norm);
   //decomposition on x and y (unit vector)
   double vect_x = (partB->x - partA->x)/norm;
@@ -21,7 +21,18 @@ void compute_gravitation(Particle *partA, Particle *partB, Movement *moveA){
   moveA->a_y += force*vect_y;
 }
 
-void gravitation(Particle *parts, Movement *moves){
+void gravitation(Particle *partsA,Particle *partsB, Movement *moves){
+  int i,j;
+  //describe all the parts
+  for(i=0;i<nb_part;i++){
+    for(j=0;j<nb_part;j++){
+      if(i!=j)
+       	compute_gravitation(&partsA[i],&partsB[j],&moves[i]);
+    }
+  }
+}
+
+void gravitation_inter(Particle *parts, Movement *moves){
   int i,j;
   //describe all the parts
   for(i=0;i<nb_part;i++){
@@ -31,7 +42,6 @@ void gravitation(Particle *parts, Movement *moves){
     }
   }
 }
-
 
 void update_moves(Particle *parts, Movement *moves){
   int i;
@@ -43,7 +53,7 @@ void update_moves(Particle *parts, Movement *moves){
   }
 }
 
-void update_dt(Particle *parts, Movement *moves){
+double update_dt(Particle *parts, Movement *moves){
   /* Solve for each part
      AX²/2+BX-0.1*C=0
    where A = ||acc_part ||
@@ -62,11 +72,12 @@ void update_dt(Particle *parts, Movement *moves){
 
     new_dt = (sqrt(delta)- B)/A;
 
-    dt = min(new_dt,DT_max); 
+    dt = my_min(new_dt,DT_max); 
+    return dt;
   }
 }
 
-double min(double a, double b){
+double my_min(double a, double b){
   if (a<b)
     return a;
   return b;
