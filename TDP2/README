@@ -6,17 +6,21 @@ Modélisation de particules soumises à
 une force gravitationelle
 ######################
 
-Créer un dossier test (au même endroit que le main.c)
+- Créer un dossier test (au même endroit que le main.c)
 
-Générer les échantillons:
-python gen_part.py <nombre_processeurs> <nombre_de_particules>
+- Générer les échantillons:
+     python gen_part.py <nombre_processeurs> <nombre_de_particules>
 
-Pour compiler:
-make
+- Pour compiler:
+     make
 
-Pour exécuter:
-mpirun -np  <nombre_processeurs> main
+- Pour exécuter:
+     mpirun -np  <nombre_processeurs> main
 
-Pour visualiser:
-python plot_result.py  <nombre_processeurs>
+- Pour visualiser:
+     python plot_result.py  <nombre_processeurs>
+
+
+Pour modifier le nombre d'itérations:
+NB_ITER (dans model.h)
 
