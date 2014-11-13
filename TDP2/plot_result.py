@@ -1,3 +1,4 @@
+
 import pylab
 import sys
 
@@ -16,9 +17,9 @@ def plot():
         pylab.plot( data[:,0], data[:,1],"o", label=label )
 
     pylab.legend()
-    pylab.title("Title of Plot")
-    pylab.xlabel("X Axis Label")
-    pylab.ylabel("Y Axis Label")
+    pylab.title("Resultat simulation 20 particules 100 iterations")
+    pylab.xlabel("X")
+    pylab.ylabel("Y")
     pylab.show()
-
+#    pylab.savefig("simu.png")
 plot()

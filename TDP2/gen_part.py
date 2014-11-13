@@ -9,11 +9,11 @@ def gen():
         nb_part = int(sys.argv[2])
 
 
-    Masse_tab = (10000*np.random.rand(nb_part)).tolist()
-    x_tab =  (100*np.random.rand(nb_part)).tolist()
-    y_tab =  (100*np.random.rand(nb_part)).tolist()
-    vit_x_tab = (100*np.random.rand(nb_part)).tolist()
-    vit_y_tab = (100*np.random.rand(nb_part)).tolist()
+    Masse_tab = (1000*np.random.rand(nb_part)).tolist()
+    x_tab =  (10*np.random.rand(nb_part)).tolist()
+    y_tab =  (10*np.random.rand(nb_part)).tolist()
+    vit_x_tab = (10*np.random.rand(nb_part)).tolist()
+    vit_y_tab = (10*np.random.rand(nb_part)).tolist()
     nb_element_file = nb_part/nb_proc
     reste = nb_part%nb_proc
     print Masse_tab
