@@ -8,35 +8,23 @@ double compute_norm(Particle *partA, Particle *partB){
 }
 
 void compute_gravitation(Particle *partA, Particle *partB, Movement *moveA){
-  //DEBUG
-  //(partA->x != 100) ? : printf("compute_gravitation :\n me : x = %lf, y = %lf; other : x = %lf, y = %lf\n", partA->x, partA->y, partB->x, partB->y);
-  //DEBUG
   double norm =  compute_norm(partA,partB);
   if(norm == 0.0)
     return;
-  //DEBUG
 
-  //(partA->x != 100) ? : printf("dist before = %lf\n", partA->dist);
-  //DEBUG
   if (partA->dist == 0.0)
     {
       partA->dist = norm;
     }
   partA->dist = my_min(partA->dist,norm);
-  //DEBUG
-  //(partA->x != 100) ? : printf("dist after = %lf\n", partA->dist);
-  //DEBUG
   double force = G* partB->mass/(norm*norm);
-  //DEBUG
-  //(partA->x != 100) ? : printf("force = %lf\n", force);
-  //DEBUG
   //decomposition on x and y (unit vector)
   double vect_x = (partB->x - partA->x)/norm;
   double vect_y= (partB->y - partA->y)/norm;
 
   moveA->a_x += force*vect_x;
   moveA->a_y += force*vect_y;
-  //(partA->x != 100) ? : printf("moveA->a_x");
+
 }
 
 void gravitation(Particle *partsA,Particle *partsB, Movement *moves){
@@ -44,9 +32,6 @@ void gravitation(Particle *partsA,Particle *partsB, Movement *moves){
   //describe all the parts
   for(i=0;i<nb_part;i++){
     for(j=0;j<nb_part;j++){
-      //DEBUG
-      //(partsA[i].x != 100) ? : printf("gravitation :\n me : x = %lf, y = %lf; other : x = %lf, y = %lf; i = %d; j = %d\n", partsA[i].x, partsA[i].y, partsB[j].x, partsB[j].y, i, j);
-      //DEBUG
       compute_gravitation(&partsA[i],&partsB[j],&moves[i]);
     }
   }
@@ -66,10 +51,6 @@ void gravitation_inter(Particle *parts, Movement *moves){
 void update_moves(Particle *parts, Movement *moves){
   int i;
   for(i=0;i<nb_part;i++){
-    //DEBUG
-    //(parts[i].x != 100) ? : printf("BEGIN UPDATE : v_x = %lf; v_y = %lf; i\n", moves[i].v_x, moves[i].v_y, i);
-    //(parts[i].x != 100) ? : printf("BEGIN UPDATE : dt = %lf; i\n", dt, i);
-    //DEBUG
     moves[i].v_x += moves[i].a_x*dt;
     moves[i].v_y += moves[i].a_y*dt;
     parts[i].x+= moves[i].v_x*dt +  moves[i].a_x*(dt*dt)/2;
