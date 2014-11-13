@@ -1,4 +1,3 @@
-
 #include "load.h"
 #include <mpi.h>
 
@@ -7,6 +6,8 @@ int main(int argc, char * argv[]){
   Movement *moves;
   int myrank, comm_size;
   MPI_Status status;
+
+  dt = DT_max;
 
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -17,10 +18,7 @@ int main(int argc, char * argv[]){
   int err;
 
 
-  sprintf(name,"proc_%d.txt",myrank);
-  //DEBUG                                                                                                                                                                        
-  //printf("%s\n",name);                                                                                                                                                         
-  //DEBUG                                                                                                                                                                        
+  sprintf(name,"proc_%d.txt",myrank);                                                                                                                                                          
 
   nb_part = nb_lines(name);
 
@@ -33,12 +31,7 @@ int main(int argc, char * argv[]){
   buffer_2 = malloc(nb_part*sizeof(Particle));
   moves = malloc(nb_part*sizeof(Movement));
   load(particles_owned,moves,file,nb_part);
-  fclose(file);
-
-  //DEBUG                                                                                                                                                                        
-  //  printf("part :%lf %lf %lf %lf\n",particles_owned[0].mass,particles_owned[0].x,particles_owned[0].y,particles_owned[0].dist);                                                                         
-  //printf("move: %lf %lf %lf %lf\n",moves[0].v_x,moves[0].v_y,moves[0].a_x,moves[0].a_y);                                                                                       
-  //DEBUG                                                                                                                                                                        
+  fclose(file);                                                                                                                        
 
   int array_of_lengths[] = { 1, 1, 1, 1};
   MPI_Aint array_of_displs[4];
@@ -73,14 +66,19 @@ int main(int argc, char * argv[]){
   MPI_Recv_init(buffer_1, 1, PARTICLES,(myrank-1)%comm_size, 99, MPI_COMM_WORLD, &buffer_recv2);
 
   int i,ring_index;
+
   for(i=0;i<NB_ITER;i++){
-    //printf("myrank debut de boulce %d\n",myrank);    
+
     memcpy(buffer_1, particles_owned, nb_part*sizeof(Particle));
-    for(ring_index;ring_index<comm_size; ring_index++){
+    
+    for(ring_index=0;ring_index<comm_size; ring_index++){
+
       /* iteration number in ring  even*/
       if(ring_index%2==0){
+
 	MPI_Start(&buffer_send1);
 	MPI_Start(&buffer_recv1);
+
 	if(ring_index==0){
 	  gravitation_inter(particles_owned,moves);
 	}
@@ -94,32 +92,50 @@ int main(int argc, char * argv[]){
       else{
 	MPI_Start(&buffer_send2);
 	MPI_Start(&buffer_recv2);
-	gravitation(particles_owned,buffer_1,moves);
-	
+	//DEBUG
+	//(myrank != 1) ? : printf("x_owned = %lf, y_owned = %lf\n", particles_owned[0].x, particles_owned[0].y);
+	//(myrank != 1) ? : printf("x_other = %lf, y_other = %lf\n", buffer_2[0].x, buffer_2[0].y);
+	//(myrank != 1) ? : printf("i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
+	//DEBUG
+
+	gravitation(particles_owned,buffer_2,moves);
+
+	//DEBUG
+	//(myrank != 1) ? : printf("i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
+	//DEBUG
 	MPI_Wait(&buffer_send2, &status);
 	MPI_Wait(&buffer_recv2, &status);
       
-      }    
+      }
     }
+
+    //DEBUG
+    //(myrank != 1) ? : printf("tour %d : dt = %lf\n", i, dt);
+    //DEBUG
+
+    //DEBUG
+    //(myrank != 1) ? : printf("BEFORE UPDATE : i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
+    //DEBUG
+    
     update_moves(particles_owned, moves);
 
+    //DEBUG
+    //(myrank != 1) ? : printf("AFTER UPDATE : i = %d, v_x = %lf, v_y = %lf\n", i, moves[0].v_x, moves[0].v_y);
+    //DEBUG
   
     char output[10];
-    //    printf("myrank avant ecriture de boulce %d\n",myrank);
-
     sprintf(output, "test/%d_out.txt", myrank);
     FILE *file = fopen(output, "a");
     int j;
     for(j=0; j<nb_part; j++){
       fprintf(file, "%lf %lf\n", particles_owned[j].x, particles_owned[j].y);
-      }
+    }
     double my_dt = update_dt(particles_owned, moves);
     MPI_Allreduce(&my_dt, &dt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    //    printf("\n\n\n\n dt_tmp = %lf\n", dt);     
     fclose(file);
+  }  
 
-    //   printf("myrank fin de boulce %d\n",myrank);
-  }
- 
   MPI_Type_free(&A_PARTICLE);
   MPI_Type_free(&PARTICLES);
   MPI_Finalize();

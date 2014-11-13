@@ -9,8 +9,8 @@
 
 #define CHK(X, Y) do { if ((X)<0) {perror(Y); exit(1);} } while(0)
 #define G 9.81 //gravitation coefficient
-#define DT_max 0.1
-#define NB_ITER 5000
+#define DT_max 0.01
+#define NB_ITER 50
 double dt;
 int nb_part;
 typedef struct _Particle {
