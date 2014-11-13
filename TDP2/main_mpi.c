@@ -1,4 +1,4 @@
-#include "load.h"
+ #include "load.h"
 #include <mpi.h>
 
 int main(int argc, char * argv[]){
@@ -13,10 +13,7 @@ int main(int argc, char * argv[]){
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  //TODO : adapter la taille du filename en fonction du nombre de digits                                                                                                         
   char *name = malloc(sizeof(char)*10);
-  int err;
-
 
   sprintf(name,"proc_%d.txt",myrank);                                                                                                                                                          
 
@@ -33,6 +30,7 @@ int main(int argc, char * argv[]){
   load(particles_owned,moves,file,nb_part);
   fclose(file);                                                                                                                        
 
+  /* Structure creation */
   int array_of_lengths[] = { 1, 1, 1, 1};
   MPI_Aint array_of_displs[4];
   MPI_Aint i1,i2;
@@ -67,6 +65,10 @@ int main(int argc, char * argv[]){
 
   int i,ring_index;
 
+  double time_p,time; 
+  time_p = MPI_Wtime();
+
+  /*number of iterations to see the trajectory of particles */
   for(i=0;i<NB_ITER;i++){
 
     memcpy(buffer_1, particles_owned, nb_part*sizeof(Particle));
@@ -85,6 +87,7 @@ int main(int argc, char * argv[]){
 	else{
 	  gravitation(particles_owned,buffer_1,moves);
 	}
+
 	MPI_Wait(&buffer_send1, &status);
 	MPI_Wait(&buffer_recv1, &status);
       }
@@ -92,46 +95,40 @@ int main(int argc, char * argv[]){
       else{
 	MPI_Start(&buffer_send2);
 	MPI_Start(&buffer_recv2);
-	//DEBUG
-	//(myrank != 1) ? : printf("x_owned = %lf, y_owned = %lf\n", particles_owned[0].x, particles_owned[0].y);
-	//(myrank != 1) ? : printf("x_other = %lf, y_other = %lf\n", buffer_2[0].x, buffer_2[0].y);
-	//(myrank != 1) ? : printf("i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
-	//DEBUG
 
 	gravitation(particles_owned,buffer_2,moves);
 
-	//DEBUG
-	//(myrank != 1) ? : printf("i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
-	//DEBUG
 	MPI_Wait(&buffer_send2, &status);
 	MPI_Wait(&buffer_recv2, &status);
       
       }
     }
 
-    //DEBUG
-    //(myrank != 1) ? : printf("tour %d : dt = %lf\n", i, dt);
-    //DEBUG
 
-    //DEBUG
-    //(myrank != 1) ? : printf("BEFORE UPDATE : i = %d, a_x = %lf, a_y = %lf\n", i, moves[0].a_x, moves[0].a_y);
-    //DEBUG
-    
     update_moves(particles_owned, moves);
 
-  
-    char output[10];
+    char output[14];
     sprintf(output, "test/%d_out.txt", myrank);
+
     FILE *file = fopen(output, "a");
+
     int j;
     for(j=0; j<nb_part; j++){
       fprintf(file, "%lf %lf\n", particles_owned[j].x, particles_owned[j].y);
     }
+
     double my_dt = update_dt(particles_owned, moves);
     MPI_Allreduce(&my_dt, &dt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    //    printf("\n\n\n\n dt_tmp = %lf\n", dt);     
+
     fclose(file);
   }  
+
+  
+  time_p = MPI_Wtime() - time_p;
+  
+  if (myrank == 0){
+    printf("Time on %d procs: %lf sec\n", comm_size, time_p);
+  }
 
   MPI_Type_free(&A_PARTICLE);
   MPI_Type_free(&PARTICLES);
