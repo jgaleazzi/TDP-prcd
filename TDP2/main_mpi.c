@@ -74,9 +74,7 @@ int main(int argc, char * argv[]){
 
   int i,ring_index;
   for(i=0;i<NB_ITER;i++){
-    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-
-    printf("myrank debut de boulce %d\n",myrank);    
+    //printf("myrank debut de boulce %d\n",myrank);    
     memcpy(buffer_1, particles_owned, nb_part*sizeof(Particle));
     for(ring_index;ring_index<comm_size; ring_index++){
       /* iteration number in ring  even*/
@@ -107,20 +105,19 @@ int main(int argc, char * argv[]){
 
   
     char output[10];
-    printf("myrank avant ecriture de boulce %d\n",myrank);
+    //    printf("myrank avant ecriture de boulce %d\n",myrank);
 
-    sprintf(output, "test/%d_out%d.txt", myrank, i+1);
-    FILE *file = fopen(output, "w+");
+    sprintf(output, "test/%d_out.txt", myrank);
+    FILE *file = fopen(output, "a");
     int j;
     for(j=0; j<nb_part; j++){
       fprintf(file, "%lf %lf\n", particles_owned[j].x, particles_owned[j].y);
-
-    }
+      }
     double my_dt = update_dt(particles_owned, moves);
     MPI_Allreduce(&my_dt, &dt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-
     fclose(file);
-    printf("myrank fin de boulce %d\n",myrank);
+
+    //   printf("myrank fin de boulce %d\n",myrank);
   }
  
   MPI_Type_free(&A_PARTICLE);
@@ -129,7 +126,7 @@ int main(int argc, char * argv[]){
  
 
   free(particles_owned);
- free(moves);
+  free(moves);
   free(buffer_1);
   free(buffer_2);
   return 0;
