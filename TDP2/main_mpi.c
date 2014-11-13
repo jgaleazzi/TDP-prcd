@@ -119,9 +119,6 @@ int main(int argc, char * argv[]){
     
     update_moves(particles_owned, moves);
 
-    //DEBUG
-    //(myrank != 1) ? : printf("AFTER UPDATE : i = %d, v_x = %lf, v_y = %lf\n", i, moves[0].v_x, moves[0].v_y);
-    //DEBUG
   
     char output[10];
     sprintf(output, "test/%d_out.txt", myrank);

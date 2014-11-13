@@ -50,4 +50,5 @@ void update_moves(Particle *parts, Movement *moves);
 double update_dt(Particle *parts, Movement *moves);
 
 double my_min(double a, double b);
+
 #endif

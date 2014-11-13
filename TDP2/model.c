@@ -72,9 +72,6 @@ void update_moves(Particle *parts, Movement *moves){
     //DEBUG
     moves[i].v_x += moves[i].a_x*dt;
     moves[i].v_y += moves[i].a_y*dt;
-    //DEBUG
-    //(parts[i].x != 100) ? : printf("END UPDATE : v_x = %lf; v_y = %lf; i\n", moves[i].v_x, moves[i].v_y, i);
-    //DEBUG
     parts[i].x+= moves[i].v_x*dt +  moves[i].a_x*(dt*dt)/2;
     parts[i].y+= moves[i].v_y*dt +  moves[i].a_y*(dt*dt)/2;
   }
