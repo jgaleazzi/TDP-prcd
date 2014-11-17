@@ -1,15 +1,28 @@
 CC=mpicc
-CFLAGS= -lm -Wall
+CFLAGS= -Wall
 EXEC=main
-LIB=-L/usr/lib64 -Ilibgslcblas
+#LIB= -Wl,-rpath=/usr/lib64 -Ilibgslcblas
+LIB=/usr/lib64/libgslcblas.so.0 -lm
+NB_PROC=9
+BLOC_SIZE=2
 
-all: $(EXEC)
+run: compile
+	/usr/lib64/openmpi/bin/mpiexec -n $(NB_PROC) ./$(EXEC)
 
-main:  main.c load.o
-	$(CC) -o main main.c load.o $(LIB) $(CFLAGS)
+compile: gen $(EXEC)
+
+$(EXEC):  main.c load.o matrix.o
+	$(CC) -o main main.c load.o matrix.o $(CFLAGS) $(LIB)
 
 load.o: load.c
 	$(CC) load.c -c $(CFLAGS)
+
+matrix.o:
+	$(CC) matrix.c -c $(CFLAGS)
+
+gen:
+	python matrix_gen.py $(NB_PROC) $(BLOC_SIZE)
+
 clean:
 	rm -rf *.o  $(EXEC)  *~
 
