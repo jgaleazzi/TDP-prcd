@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <math.h>
 #define CHK(X, Y) do { if ((X)<0) {perror(Y); exit(1);} } while(0)
 
 void load(const char *name, double *matrix,int size);
