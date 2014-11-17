@@ -1,23 +1,14 @@
 #include <mpi.h>
+#include <string.h>
 #include "cblas.h"
+
 #include "load.h"
-
-
-
-void print_matrix(double *A, int size){
-  int i,j;
-  for(i = 0; i < size; ++i){
-    for(j = 0; j < size; ++j){
-      printf("%lf ", A[j*size + i]);
-    }
-    printf("\n");
-  }
-}
+#include "matrix.h"
 
 int main(int agrc, char**argv){
   int myrank, nb_proc,nb_bloc_1D,size,bloc_size;
   int k,i,j;
-  //MPI_Status status;
+  MPI_Status status;
   char *name_A="A.txt";
   char *name_B="B.txt";
   FILE* file = fopen(name_A, "r");
@@ -30,22 +21,22 @@ int main(int agrc, char**argv){
 
 
   nb_bloc_1D=size/bloc_size;
-  printf("bloc_size: %d nb_bloc_1: %d\n",bloc_size,nb_bloc_1D);
-  double* A = malloc(size*size*sizeof(double));
-  double* B = malloc(size*size*sizeof(double));
-  double* C = malloc(size*size*sizeof(double));
+  double A[size*size];
+  double B[size*size];
+  double C[size*size];
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 
-
+  //DEBUG
+  //(myrank != 0) ? : fprintf(stderr, "size : %d, bloc_size : %d\n", size, bloc_size);
+  //DEBUG
 
   if(myrank==0){
     load(name_A,A,size);
     load(name_B,B,size);
     //    print_matrix(A,size);
   }
-
 
   if(nb_bloc_1D * nb_bloc_1D != nb_proc){
     if(myrank == 0)
@@ -56,8 +47,8 @@ int main(int agrc, char**argv){
 
   int sendcounts[nb_proc];
   int displs[nb_proc];
-  double matrix_local_A[bloc_size*bloc_size];
-  double matrix_local_B[bloc_size*bloc_size];
+  double local_A[bloc_size*bloc_size];
+  double recv_B[bloc_size*bloc_size];
 
   for( i = 0; i < nb_proc; i++) {
     sendcounts[i] = 1;
@@ -73,10 +64,10 @@ int main(int agrc, char**argv){
   MPI_Type_commit(&MATRIX_BLOC);
 
   
-  MPI_Scatterv(A, sendcounts,displs, MATRIX_BLOC, matrix_local_A, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  MPI_Scatterv(B, sendcounts,displs, MATRIX_BLOC, matrix_local_B, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Scatterv(A, sendcounts,displs, MATRIX_BLOC, local_A, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Scatterv(B, sendcounts,displs, MATRIX_BLOC, recv_B, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  //  print_matrix(matrix_local_A,bloc_size);
+  //  print_matrix(local_A,bloc_size);
 
   int dims[2]={nb_bloc_1D,nb_bloc_1D};
   int periods[2]={1,0};
@@ -104,31 +95,44 @@ int main(int agrc, char**argv){
   MPI_Cart_sub( grid2D, remain_dims_column, &comm_column);
   MPI_Comm_rank(comm_column, &rang_local_colonne);
 
-  double matrix_recv_A[bloc_size*bloc_size];
-  double matrix_recv_B[bloc_size*bloc_size];
-  
+  MPI_Request send_req;
+  MPI_Request recv_req;
+
+  double bloc_C[bloc_size*bloc_size];
+  double current_A[bloc_size*bloc_size];
+  double send_B[bloc_size*bloc_size];
+
   for(k=0;k<nb_bloc_1D;k++){
     //STEP 1
     //loop on the lines
     for(i=0;i<nb_bloc_1D;i++){
-	MPI_Bcast(matrix_recv_A, 1, MATRIX_BLOC, (i+k)%nb_bloc_1D, comm_line);
+	MPI_Bcast(current_A, 1, MATRIX_BLOC, (i+k)%nb_bloc_1D, comm_line);
       }
     
     //STEP 2
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, const int M, const int N,
-                 const int K, 1.0, matrix_recv_A,
-                 const int lda, const double *B, const int ldb,
-                 1.0, C, const int ldc);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, bloc_size, bloc_size,
+                 bloc_size, 1.0, current_A,
+                 bloc_size, recv_B, bloc_size,
+                 1.0, bloc_C, bloc_size);
 
     //STEP 3
+    //Same buffer used for send and recv (MPI_IN_PLACE)
+    //+nb_bloc_1D added in the modulo, because the C-modulo of a negative number returns a negative number
+    
+    //V1
+    //BUG : MPI_Sendrecv incompatible avec MPI_IN_PLACE
+    //MPI_Sendrecv(bloc_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, MPI_IN_PLACE, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &status);
+
+    //V2
+    memcpy(send_B, recv_B, bloc_size*bloc_size);
+    MPI_Isend(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &send_req);
+    MPI_Irecv(recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &recv_req);
+    MPI_Wait(&send_req, &status);
+    MPI_Wait(&recv_req, &status);
   }
   
 
 
   MPI_Finalize();
-
-  free(A);
-  free(B);
-  free(C);
   return 0;
 }
