@@ -7,15 +7,16 @@
 void print_matrix(double *A, int size){
   int i,j;
   for(i = 0; i < size; ++i){
-      for(j = 0; j < size; ++j){
-	  printf("%lf ", A[j*size + i]);
-	}
-      printf("\n");
+    for(j = 0; j < size; ++j){
+      printf("%lf ", A[j*size + i]);
     }
+    printf("\n");
+  }
 }
 
 int main(int agrc, char**argv){
-  int myrank, comm_size,nb_bloc_1D,size,bloc_size;
+  int myrank, nb_proc,nb_bloc_1D,size,bloc_size;
+  int k,i,j;
   //MPI_Status status;
   char *name_A="A.txt";
   char *name_B="B.txt";
@@ -24,25 +25,58 @@ int main(int agrc, char**argv){
     fprintf(stderr, "Cannot open file %s\n", name_A);
   }
   
-  fscanf(file,"%d %d",&size,&nb_bloc_1D);
+  fscanf(file,"%d %d",&size,&bloc_size);
   fclose(file);
-  bloc_size=size/nb_bloc_1D;
+
+
+  nb_bloc_1D=size/bloc_size;
+  printf("bloc_size: %d nb_bloc_1: %d\n",bloc_size,nb_bloc_1D);
   double* A = malloc(size*size*sizeof(double));
   double* B = malloc(size*size*sizeof(double));
-  
+  double* C = malloc(size*size*sizeof(double));
   MPI_Init(NULL, NULL);
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+  MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
+
 
 
   if(myrank==0){
-
     load(name_A,A,size);
     load(name_B,B,size);
-    //print_matrix(A,size);
+    //    print_matrix(A,size);
   }
-  
 
+
+  if(nb_bloc_1D * nb_bloc_1D != nb_proc){
+    if(myrank == 0)
+      puts("I need a square number of processes !");
+    MPI_Finalize();
+    return EXIT_FAILURE;
+  }
+
+  int sendcounts[nb_proc];
+  int displs[nb_proc];
+  double matrix_local_A[bloc_size*bloc_size];
+  double matrix_local_B[bloc_size*bloc_size];
+
+  for( i = 0; i < nb_proc; i++) {
+    sendcounts[i] = 1;
+    displs[i] = (i%nb_bloc_1D) + (i/nb_bloc_1D) * nb_bloc_1D * bloc_size;
+    if(myrank == 0)
+      printf("%d\n", displs[i]);
+  }
+
+
+  MPI_Datatype MATRIX_BLOC;
+  MPI_Type_vector(bloc_size, bloc_size, nb_bloc_1D*bloc_size, MPI_DOUBLE, &MATRIX_BLOC);
+  MPI_Type_create_resized(MATRIX_BLOC, 0, bloc_size * sizeof(double), &MATRIX_BLOC);
+  MPI_Type_commit(&MATRIX_BLOC);
+
+  
+  MPI_Scatterv(A, sendcounts,displs, MATRIX_BLOC, matrix_local_A, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  MPI_Scatterv(B, sendcounts,displs, MATRIX_BLOC, matrix_local_B, bloc_size*bloc_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  //  print_matrix(matrix_local_A,bloc_size);
 
   int dims[2]={nb_bloc_1D,nb_bloc_1D};
   int periods[2]={1,0};
@@ -55,7 +89,7 @@ int main(int agrc, char**argv){
   int rank_loc;
   MPI_Cart_coords(grid2D,myrank,2,coord);
   MPI_Cart_rank(grid2D,coord,&rank_loc);
-  printf("je suis le procs %d et coord (%d;%d) \n",myrank,coord[0],coord[1]);
+  //  printf("je suis le procs %d et coord (%d;%d) \n",myrank,coord[0],coord[1]);
 
   //we keep only the lines, corresponding to the 1st dimension
   int remain_dims_lines[2] = {0,1};
@@ -70,25 +104,31 @@ int main(int agrc, char**argv){
   MPI_Cart_sub( grid2D, remain_dims_column, &comm_column);
   MPI_Comm_rank(comm_column, &rang_local_colonne);
 
-  int k,i,j;
+  double matrix_recv_A[bloc_size*bloc_size];
+  double matrix_recv_B[bloc_size*bloc_size];
+  
   for(k=0;k<nb_bloc_1D;k++){
-    if((rang_local_colonne == i) && (rang_local_ligne == (i+k)%nb_bloc_1D)){
-      //MPI_Bcast(, bloc_size * bloc_size, MPI_DOUBLE, rang_local_ligne, comm_line);
+    //STEP 1
+    //loop on the lines
+    for(i=0;i<nb_bloc_1D;i++){
+	MPI_Bcast(matrix_recv_A, 1, MATRIX_BLOC, (i+k)%nb_bloc_1D, comm_line);
+      }
+    
+    //STEP 2
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, const int M, const int N,
+                 const int K, 1.0, matrix_recv_A,
+                 const int lda, const double *B, const int ldb,
+                 1.0, C, const int ldc);
+
+    //STEP 3
   }
-
-    // faire produit
-
-    //3eme etape boucle 
-
-  }
-
-
-
+  
 
 
   MPI_Finalize();
 
   free(A);
   free(B);
+  free(C);
   return 0;
 }
