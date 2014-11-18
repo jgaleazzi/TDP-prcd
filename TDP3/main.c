@@ -106,15 +106,16 @@ int main(int agrc, char**argv){
     //STEP 1
     //loop on the lines
     for(i=0;i<nb_bloc_1D;i++){
+      // curren_A ???? pas initialisée !!!!!
 	MPI_Bcast(current_A, 1, MATRIX_BLOC, (i+k)%nb_bloc_1D, comm_line);
       }
-    
+    print_matrix( local_A, bloc_size);
     //STEP 2
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, bloc_size, bloc_size,
                  bloc_size, 1.0, current_A,
                  bloc_size, recv_B, bloc_size,
                  1.0, bloc_C, bloc_size);
-
+    
     //STEP 3
     //Same buffer used for send and recv (MPI_IN_PLACE)
     //+nb_bloc_1D added in the modulo, because the C-modulo of a negative number returns a negative number
@@ -129,10 +130,11 @@ int main(int agrc, char**argv){
     MPI_Irecv(recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &recv_req);
     MPI_Wait(&send_req, &status);
     MPI_Wait(&recv_req, &status);
+    
   }
   
-
-
+  
+  
   MPI_Finalize();
   return 0;
 }

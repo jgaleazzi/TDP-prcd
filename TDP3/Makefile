@@ -3,7 +3,7 @@ CFLAGS= -Wall
 EXEC=main
 #LIB= -Wl,-rpath=/usr/lib64 -Ilibgslcblas
 LIB=/usr/lib64/libgslcblas.so.0 -lm
-NB_PROC=9
+NB_PROC=4
 BLOC_SIZE=2
 
 run: compile
