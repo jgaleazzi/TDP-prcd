@@ -101,6 +101,7 @@ int main(int agrc, char**argv){
   double bloc_C[bloc_size*bloc_size];
   double current_A[bloc_size*bloc_size];
   double send_B[bloc_size*bloc_size];
+  memcpy(current_A, local_A, bloc_size*bloc_size);
 
   for(k=0;k<nb_bloc_1D;k++){
     //STEP 1
@@ -122,15 +123,16 @@ int main(int agrc, char**argv){
     
     //V1
     //BUG : MPI_Sendrecv incompatible avec MPI_IN_PLACE
-    //MPI_Sendrecv(bloc_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, MPI_IN_PLACE, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &status);
+    MPI_Sendrecv(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &status);
 
     //V2
+    /*
     memcpy(send_B, recv_B, bloc_size*bloc_size);
     MPI_Isend(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &send_req);
     MPI_Irecv(recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &recv_req);
     MPI_Wait(&send_req, &status);
     MPI_Wait(&recv_req, &status);
-    
+    */
   }
   
   
