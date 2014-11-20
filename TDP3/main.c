@@ -70,7 +70,7 @@ int main(int agrc, char**argv){
   //  print_matrix(local_A,bloc_size);
 
   int dims[2]={nb_bloc_1D,nb_bloc_1D};
-  int periods[2]={1,0};
+  int periods[2]={1,1};
   int reorder = 0;
   MPI_Comm grid2D;
   
@@ -83,16 +83,16 @@ int main(int agrc, char**argv){
   //  printf("je suis le procs %d et coord (%d;%d) \n",myrank,coord[0],coord[1]);
 
   //we keep only the lines, corresponding to the 1st dimension
-  int remain_dims_lines[2] = {0,1};
+  int remain_dims_lines[2] = {1,0};
   MPI_Comm comm_line;
   int rang_local_ligne;
-  MPI_Cart_sub( grid2D, remain_dims_lines, &comm_line);
+  MPI_Cart_sub(grid2D, remain_dims_lines, &comm_line);
   MPI_Comm_rank(comm_line, &rang_local_ligne);
 
   int remain_dims_column[2] = {0,1};
   MPI_Comm comm_column;
   int rang_local_colonne;
-  MPI_Cart_sub( grid2D, remain_dims_column, &comm_column);
+   MPI_Cart_sub(grid2D, remain_dims_column, &comm_column);
   MPI_Comm_rank(comm_column, &rang_local_colonne);
 
   MPI_Request send_req;
@@ -101,29 +101,61 @@ int main(int agrc, char**argv){
   double bloc_C[bloc_size*bloc_size];
   double current_A[bloc_size*bloc_size];
   double send_B[bloc_size*bloc_size];
-  memcpy(current_A, local_A, bloc_size*bloc_size);
-
-  for(k=0;k<nb_bloc_1D;k++){
+  
+  
+  
+  for(k=0;k<nb_bloc_1D;k++){ 
     //STEP 1
     //loop on the lines
-    for(i=0;i<nb_bloc_1D;i++){
-      // curren_A ???? pas initialisée !!!!!
-	MPI_Bcast(current_A, 1, MATRIX_BLOC, (i+k)%nb_bloc_1D, comm_line);
-      }
-    print_matrix( local_A, bloc_size);
+    //for(i=0;i<nb_bloc_1D;i++){
+    // curren_A ???? pas initialisée !!!!!
+    if(rang_local_colonne == (rang_local_ligne+k)%nb_bloc_1D){
+      memcpy(current_A, local_A, bloc_size*bloc_size*sizeof(double));
+      MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
+     
+    }
+    else{
+      //  printf("current_recv_A\n");
+      MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
+      //print_matrix( current_A, bloc_size);  
+     
+    }
+   
+    /*   if( (rang_local_ligne==0) && (rang_local_colonne==1)){
+     printf("current_A\n");
+     print_matrix( current_A, bloc_size);  
+     //     printf("local_A\n");
+     //print_matrix( local_A, bloc_size);  
+     //      printf("recv_B\n");
+     //print_matrix( recv_B, bloc_size);  
+      sleep(1);
+      }*/
+ 
+    
     //STEP 2
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, bloc_size, bloc_size,
                  bloc_size, 1.0, current_A,
                  bloc_size, recv_B, bloc_size,
                  1.0, bloc_C, bloc_size);
     
+    /*if(k==0){
+      printf("C\n");
+      print_matrix( bloc_C, bloc_size);  
+    }
+
+    if(k==1){
+      printf("C\n");
+      print_matrix( bloc_C, bloc_size);  
+      }*/
     //STEP 3
     //Same buffer used for send and recv (MPI_IN_PLACE)
     //+nb_bloc_1D added in the modulo, because the C-modulo of a negative number returns a negative number
     
     //V1
     //BUG : MPI_Sendrecv incompatible avec MPI_IN_PLACE
-    MPI_Sendrecv(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &status);
+    memcpy(send_B, recv_B, bloc_size*bloc_size*sizeof(double));
+    MPI_Sendrecv(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1)%nb_bloc_1D, 100, comm_column, &status);
+
 
     //V2
     /*
@@ -133,10 +165,20 @@ int main(int agrc, char**argv){
     MPI_Wait(&send_req, &status);
     MPI_Wait(&recv_req, &status);
     */
+
+
   }
+
+if(myrank==2)
+    print_matrix(bloc_C, bloc_size);  
   
-  
-  
+  MPI_Gatherv(bloc_C, bloc_size*bloc_size, MPI_DOUBLE,
+	      C, sendcounts, displs,MATRIX_BLOC, 0, MPI_COMM_WORLD);
+
+  if(myrank==0)
+    print_matrix(C, bloc_size*nb_bloc_1D);  
+
+  MPI_Type_free(& MATRIX_BLOC);
   MPI_Finalize();
   return 0;
 }
