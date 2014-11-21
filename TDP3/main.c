@@ -106,20 +106,9 @@ int main(int agrc, char**argv){
     //STEP 1
     if(rang_local_ligne == (rang_local_colonne+k)%nb_bloc_1D){
       memcpy(current_A, local_A, bloc_size*bloc_size*sizeof(double));
-      /*if(rang_local_colonne == 0){
-	printf("k=%d, myrank=%d, rang_local_colonne=%d, rang_local_ligne=%d, about to broadcast :\n", k, myrank, rang_local_colonne, rang_local_ligne);
-	print_matrix(current_A, bloc_size);
-	}*/
-      MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
     }
-    else{
-      MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
-      /*if(myrank==0){
-	printf("k=%d, just received a broadcast :\n", k);
-	print_matrix(current_A, bloc_size);
-      }*/
-    }
- 
+      MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line); 
+
     //STEP 2
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, bloc_size, bloc_size,
                  bloc_size, 1.0, current_A,
@@ -131,8 +120,6 @@ int main(int agrc, char**argv){
     //TODO : utiliser MPI_Sendrecv_replace pour n'utiliser qu'un seul buffer
     memcpy(send_B, recv_B, bloc_size*bloc_size*sizeof(double));
     MPI_Sendrecv(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1)%nb_bloc_1D, 100, comm_column, &status);
-
-
   }
 
   
