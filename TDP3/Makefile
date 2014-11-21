@@ -9,7 +9,7 @@ BLOC_SIZE=2
 run: compile
 	/usr/lib64/openmpi/bin/mpiexec -n $(NB_PROC) ./$(EXEC)
 
-compile: gen $(EXEC)
+compile: $(EXEC)
 
 $(EXEC):  main.c load.o matrix.o
 	$(CC) -o main main.c load.o matrix.o $(CFLAGS) $(LIB)
