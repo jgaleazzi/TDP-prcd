@@ -53,8 +53,6 @@ int main(int agrc, char**argv){
   for( i = 0; i < nb_proc; i++) {
     sendcounts[i] = 1;
     displs[i] = (i%nb_bloc_1D) + (i/nb_bloc_1D) * nb_bloc_1D * bloc_size;
-    if(myrank == 0)
-      printf("%d\n", displs[i]);
   }
 
 
@@ -106,77 +104,44 @@ int main(int agrc, char**argv){
   
   for(k=0;k<nb_bloc_1D;k++){ 
     //STEP 1
-    //loop on the lines
-    //for(i=0;i<nb_bloc_1D;i++){
-    // curren_A ???? pas initialisée !!!!!
-    if(rang_local_colonne == (rang_local_ligne+k)%nb_bloc_1D){
+    if(rang_local_ligne == (rang_local_colonne+k)%nb_bloc_1D){
       memcpy(current_A, local_A, bloc_size*bloc_size*sizeof(double));
+      /*if(rang_local_colonne == 0){
+	printf("k=%d, myrank=%d, rang_local_colonne=%d, rang_local_ligne=%d, about to broadcast :\n", k, myrank, rang_local_colonne, rang_local_ligne);
+	print_matrix(current_A, bloc_size);
+	}*/
       MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
-     
     }
     else{
-      //  printf("current_recv_A\n");
       MPI_Bcast(current_A, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+k)%nb_bloc_1D, comm_line);
-      //print_matrix( current_A, bloc_size);  
-     
-    }
-   
-    /*   if( (rang_local_ligne==0) && (rang_local_colonne==1)){
-     printf("current_A\n");
-     print_matrix( current_A, bloc_size);  
-     //     printf("local_A\n");
-     //print_matrix( local_A, bloc_size);  
-     //      printf("recv_B\n");
-     //print_matrix( recv_B, bloc_size);  
-      sleep(1);
+      /*if(myrank==0){
+	printf("k=%d, just received a broadcast :\n", k);
+	print_matrix(current_A, bloc_size);
       }*/
+    }
  
-    
     //STEP 2
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, bloc_size, bloc_size,
                  bloc_size, 1.0, current_A,
                  bloc_size, recv_B, bloc_size,
                  1.0, bloc_C, bloc_size);
-    
-    /*if(k==0){
-      printf("C\n");
-      print_matrix( bloc_C, bloc_size);  
-    }
 
-    if(k==1){
-      printf("C\n");
-      print_matrix( bloc_C, bloc_size);  
-      }*/
     //STEP 3
-    //Same buffer used for send and recv (MPI_IN_PLACE)
-    //+nb_bloc_1D added in the modulo, because the C-modulo of a negative number returns a negative number
-    
-    //V1
-    //BUG : MPI_Sendrecv incompatible avec MPI_IN_PLACE
+    //+nb_bloc_1D added in the modulo, because the C-modulo of a negative number returns a negative number  
+    //TODO : utiliser MPI_Sendrecv_replace pour n'utiliser qu'un seul buffer
     memcpy(send_B, recv_B, bloc_size*bloc_size*sizeof(double));
     MPI_Sendrecv(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1)%nb_bloc_1D, 100, comm_column, &status);
 
 
-    //V2
-    /*
-    memcpy(send_B, recv_B, bloc_size*bloc_size);
-    MPI_Isend(send_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne-1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &send_req);
-    MPI_Irecv(recv_B, bloc_size*bloc_size, MPI_DOUBLE, (rang_local_colonne+1+nb_bloc_1D)%nb_bloc_1D, 100, comm_column, &recv_req);
-    MPI_Wait(&send_req, &status);
-    MPI_Wait(&recv_req, &status);
-    */
-
-
   }
 
-if(myrank==2)
-    print_matrix(bloc_C, bloc_size);  
   
   MPI_Gatherv(bloc_C, bloc_size*bloc_size, MPI_DOUBLE,
 	      C, sendcounts, displs,MATRIX_BLOC, 0, MPI_COMM_WORLD);
 
-  if(myrank==0)
-    print_matrix(C, bloc_size*nb_bloc_1D);  
+  if(myrank==0){
+    print_matrix(C, bloc_size*nb_bloc_1D);
+  }
 
   MPI_Type_free(& MATRIX_BLOC);
   MPI_Finalize();
