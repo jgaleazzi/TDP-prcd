@@ -12,6 +12,12 @@ int main(int agrc, char**argv){
   char *name_A="A.txt";
   char *name_B="B.txt";
   FILE* file = fopen(name_A, "r");
+
+  MPI_Init(NULL, NULL);
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
+
+
   if(!file){
     fprintf(stderr, "Cannot open file %s\n", name_A);
   }
@@ -19,12 +25,14 @@ int main(int agrc, char**argv){
   fclose(file);
 
   nb_block_1D=size/block_size;
-  double A[size*size];
-  double B[size*size];
-  double C[size*size];
-  MPI_Init(NULL, NULL);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
+
+  double *A;
+  double *B;
+  double *C;
+  A=malloc(size*size*sizeof(double));
+  B=malloc(size*size*sizeof(double));
+  C=malloc(size*size*sizeof(double));
+
 
   if(myrank==0){
     load(name_A,A,size);
@@ -92,6 +100,8 @@ int main(int agrc, char**argv){
   double current_A[block_size*block_size];
   
   //MAIN LOOP
+  double time_p;
+  time_p = MPI_Wtime();
   for(k=0;k<nb_block_1D;k++){
 
     //STEP 1
@@ -110,15 +120,23 @@ int main(int agrc, char**argv){
     //+nb_block_1D added in the modulo, because the C-modulo of a negative number returns a negative number  
     MPI_Sendrecv_replace(block_B, block_size*block_size, MPI_DOUBLE, (local_rank_column-1+nb_block_1D)%nb_block_1D, 100, (local_rank_column+1)%nb_block_1D, 100, comm_column, &status);
   }
-
+  time_p = MPI_Wtime() - time_p;
   MPI_Gatherv(bloc_C, block_size*block_size, MPI_DOUBLE,
 	      C, sendcounts, displs,MATRIX_BLOC, 0, MPI_COMM_WORLD);
 
-  if(myrank==0){
-    print_matrix(C, block_size*nb_block_1D);
+  //ajout reduce
+  if (myrank == 0){
+    printf("Time on %d procs: %lf sec\n", nb_proc, time_p);
   }
+  /*  if(myrank==0){
+    print_matrix(C, block_size*nb_block_1D);
+    }*/
 
   MPI_Type_free(& MATRIX_BLOC);
   MPI_Finalize();
+
+  free(A);
+  free(B);
+  free(C);
   return 0;
 }
