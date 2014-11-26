@@ -123,9 +123,7 @@ int main(int agrc, char**argv){
        memcpy(current_A, local_A, block_size*block_size*sizeof(double));
      }
      MPI_Bcast(current_A, block_size*block_size, MPI_DOUBLE, (local_rank_column+k)%nb_block_1D, comm_line); 
-     if(myrank==0)
-       print_matrix(block_B, block_size);
-
+    
      //STEP 2
      cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, block_size, block_size,
                  block_size, 1.0, current_A,
@@ -150,10 +148,10 @@ int main(int agrc, char**argv){
    if (myrank == 0){
      printf("Time on %d procs: %lf sec\n", nb_proc, time_p);
    }
-   /*  if(myrank==0){
+   if(myrank==0){
      printf("************************************\n************************************\n");
      print_matrix(C, block_size*nb_block_1D);
-     }*/
+     }
 
    MPI_Type_free(& MATRIX_BLOC);
  }
