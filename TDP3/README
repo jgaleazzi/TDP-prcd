@@ -1,0 +1,15 @@
+TDP-prcd : Jean-François Galéazzi
+====== Elouan Keryell-Even
+
+######################
+Produit matriciel de Fox
+######################
+
+- Générer les matrices:
+     python matrix_gen.py <nombre_processeurs> <taille_des_blocs>
+
+-Pour nettoyer:
+      make clean
+
+- Pour compiler et exécuter:
+     make NB_PROC=<nombre_processeur> BLOC_SIZE=<taille_des_blocs>
