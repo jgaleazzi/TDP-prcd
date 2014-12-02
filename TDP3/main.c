@@ -1,7 +1,6 @@
-#include <mpi.h>
 #include <string.h>
+#include <mpi.h>
 #include "cblas.h"
-
 #include "load.h"
 #include "matrix.h"
 
