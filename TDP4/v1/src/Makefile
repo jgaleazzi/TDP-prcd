@@ -26,13 +26,13 @@ BIN_DIR = ../bin
 ZCAT = -DZCAT_COMMAND=\"`which zcat`\"
 
 # Macros predefinies
-CC = gcc
+CC = mpicc
 MPICC = mpicc
 
 # options de compilation
 CPPFLAGS = -I../include -I. $(DEBUG) $(ZCAT)
 #CFLAGS = -O -Wall
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -std=c99
 LDLIBS = -lm
 
 # application : fichier executable
@@ -55,12 +55,14 @@ SRC_ALL_CAMERA = cmr.basic.c
 HDR_CAMERA = cmr.h
 
 
+IMG = img.mpi-static-file.c
+
 #pour changer de type de lancer de rayons, mettre le bon .c
-SRC_IMAGE = img.mpi-static.c
+SRC_IMAGE = $(IMG)
 HDR_IMAGE = $(SRC_IMAGE:.c=.h)
 
 #pour changer de type de lancer de rayons, mettre le bon .c
-SRC_ALL_IMAGE = img.mpi-static.c
+SRC_ALL_IMAGE = $(IMG)
 
 #pour changer de type de calcul d'illumination, mettre le bon .c
 SRC_SCENE = scn.image.c
