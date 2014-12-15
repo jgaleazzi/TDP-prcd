@@ -28,6 +28,8 @@
 #include "bnd.h"
 #include "cmr.h"
 
+//#define BIG_PRIME 1501139
+#define BIG_PRIME 47
 
 typedef struct {
   COUPLE  Pixel;
@@ -66,20 +68,20 @@ pixel_basic (INDEX i, INDEX j)
 
 #define BLOCK_SIZE 8
 
-static void compute_block(COLOR* block, int num_block)
+static void compute_block(BYTE* img, int num_block)
 {
   int begin_block_i = (num_block/(Img.Pixel.j/BLOCK_SIZE))*BLOCK_SIZE;
   int begin_block_j = (num_block%(Img.Pixel.j/BLOCK_SIZE))*BLOCK_SIZE;
 
-  for(int i=0; i<BLOCK_SIZE*BLOCK_SIZE; i++)
-  {
-    block[i] = pixel_basic(begin_block_i + i/BLOCK_SIZE, begin_block_j + i%BLOCK_SIZE);
-  }
-}
-
-static void commit_block(COLOR* block, int num_block)
-{
-  
+  for(int i=0; i<BLOCK_SIZE; i++)
+    for(int j=0; j<BLOCK_SIZE; j++)
+    {
+      COLOR color = pixel_basic(begin_block_i + i, begin_block_j + j);
+      int pixel_base = Img.Pixel.j*(begin_block_j + j) + begin_block_i + i;
+      img[3*pixel_base] = color.r < 1.0 ? 255.0*color.r : 255.0;
+      img[3*pixel_base+1] = color.g < 1.0 ? 255.0*color.g : 255.0;
+      img[3*pixel_base+2] = color.b < 1.0 ? 255.0*color.b : 255.0;
+    }
 }
 
 void img(const char *FileNameImg)
@@ -93,55 +95,38 @@ void img(const char *FileNameImg)
   int C = (Img.Pixel.j/BLOCK_SIZE)*(Img.Pixel.i/BLOCK_SIZE);
   int q = (C+P-1)/P;
 
-  COLOR block[BLOCK_SIZE*BLOCK_SIZE];
+  BYTE* img = calloc(Img.Pixel.i*Img.Pixel.j*3, sizeof(BYTE));
 
-  for(int num_block=i*q; num_block<(i+1)*q-1 && num_block<C; num_block++)
+  for(int j=i*q; j<(i+1)*q && j<C; j++)
   {
-    compute_block(block,num_block);
-    commit_block(block,num_block);
+    int num_block = (j*BIG_PRIME)%C;
+    compute_block(img,num_block);
+  }
+  
+  
+  if(i==0)
+    MPI_Reduce(MPI_IN_PLACE, img, Img.Pixel.i*Img.Pixel.j*3, MPI_CHAR, MPI_SUM, 0, MPI_COMM_WORLD);
+  else
+    MPI_Reduce(img, img, Img.Pixel.i*Img.Pixel.j*3, MPI_CHAR, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  if(i==0)
+  {
+    STRING Name;
+    FILE   *FileImg;
+    strcpy (Name, FileNameImg);
+    strcat (Name, ".ppm");
+    INIT_FILE (FileImg, Name, "w");
+    fprintf (FileImg, "P6\n%d %d\n255\n", Img.Pixel.i, Img.Pixel.j);
+
+    for(int k=0; k<Img.Pixel.i*Img.Pixel.j*3; k++)
+    {
+      putc (img[k], FileImg);
+    }
+
+    EXIT_FILE(FileImg);
   }
 
-  MPI_Finalize();
+  free(img);  
 
-
-  /*Old
-  FILE   *FileImg;   
-  COLOR	 *TabColor, *Color;
-  STRING Name;
-  INDEX	 i, j;
-  BYTE   Byte;
-
-  strcpy (Name, FileNameImg);
-  strcat (Name, ".ppm");
-  INIT_FILE (FileImg, Name, "w");
-  fprintf (FileImg, "P6\n%d %d\n255\n", Img.Pixel.i, Img.Pixel.j);
-  INIT_MEM (TabColor, Img.Pixel.i, COLOR);
-
-  MPI_Init(NULL,NULL);
-  int myrank,nb_proc;
-  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-  MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
-
-  
-  
-  for (j = 0; j < Img.Pixel.j; j++) {
-    for (i = 0; i < Img.Pixel.i; i++) {
-      TabColor [i] = pixel_basic (i, j);
-    }
-    for (i = 0, Color = TabColor; i < Img.Pixel.i; i++, Color++) {
-      Byte = Color->r < 1.0 ? 255.0*Color->r : 255.0;
-      putc (Byte, FileImg);
-      Byte = Color->g < 1.0 ? 255.0*Color->g : 255.0;
-      putc (Byte, FileImg);
-      Byte = Color->b < 1.0 ? 255.0*Color->b : 255.0;
-      putc (Byte, FileImg);
-    }
-    fflush (FileImg);
-  }
-
-  MPI_Finalize();
-
-  EXIT_MEM (TabColor);
-  EXIT_FILE (FileImg);*/
-  
+  MPI_Finalize(); 
 }

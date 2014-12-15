@@ -6,8 +6,9 @@
 # Caracteristiques de l'image #
 ###############################
 # NbrPixX NbrPixY
-I 500     500
+#I 500     500
 #I 300     300
+I 400 400
 
 ################################
 # Caracteristiques de la scene #
